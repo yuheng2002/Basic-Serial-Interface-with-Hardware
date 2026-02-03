@@ -1,3 +1,19 @@
+# 2026-02-03-2:00 Final Update
+
+For this challenge, I used PA10, PA11, and PA12 as my three inputs. I double-checked Table 11 (Alternate Function) in the datasheet and confirmed these are technically "free" pins that aren't tied to system functions like MCO1, unlike PA8. This follows the KISS principle—there's no need to overcomplicate things by enabling extra clocks when I can just use the available GPIOs from the same Port A.
+
+Implementation-wise, I had to account for the physical difference between driving an LED and reading a switch. Unlike an output which locks a voltage, an input pin can "float" if left unconnected, leading to random noise. To fix this, I enabled the internal pull-up resistors for all three pins. This ensures the default state is physically 3.3V (High). When the button is pressed, it connects to Ground (Low). This is standard "Active Low" logic, meaning the software sees a '0' as a press and a '1' as a release.
+
+Initially, my code kept reporting "Switch Pressed" regardless of whether I touched the buttons or not. I first checked my software logic to ensure I didn't get the if (input == 0) condition backward. But I quickly realized that even if the logic was inverted, I should still see the status toggle when I pressed the button. Since the state never changed, I deduced this was likely a hardware issue, not software.
+
+I grabbed my multimeter to isolate the problem. First, I removed the switches entirely. PA12 showed a steady 3.3V, confirming the pull-up was working, but PA10 and PA11 were reading 0V. I traced this back to a bad connection on the breadboard's side power rail—essentially a dead zone. I swapped the wires to a different grounding node, which restored the default 3.3V on all channels.
+
+Even with the voltage rail fixed, putting the switches back in immediately dropped the signal to 0V again. I used the multimeter's **Continuity Mode** to check the switch pins and realized I had misunderstood the pinout. These rectangular switches have their pins internally connected along the longer side. Because of this, I had inadvertently wired both the GPIO and the Ground wire to the same "side" of the metal contact, creating a permanent short circuit.
+
+The fix was simple: I re-wired the switches diagonally (connecting Top-Left to Bottom-Right) to force the current to pass through the actual switching mechanism. 
+
+Finally, I refactored the code to align with the Layered Architecture principles. I extracted the repetitive hardware logic from the main switch/case superloop and moved it into generic helper functions. This makes the main loop much more readable. Also, if I want to add more LEDs or switches later, I can simply call the function instead of copy-pasting code blocks and manually editing pin numbers.
+
 # 2026-02-02-22:25 Quick Update
 
 A quick update before I move on to the Switches.

@@ -261,112 +261,111 @@ void USART2_IRQHandler(void){
 }
 
 /*
+ * ------------------------------
+ * 		Generic LED Control
+ * ------------------------------
+ *
+ */
+void Set_LED(uint8_t pinNumber, uint8_t status, char* colorName){
+	if (status == ENABLE){
+		GPIO_WriteToOutputPin(GPIOA, pinNumber, ENABLE);
+
+		USART_SendData(&USART2_Handle, (uint8_t*)colorName, strlen(colorName));
+		USART_SendData(&USART2_Handle, (uint8_t*)" ON\r\n", strlen(" ON\r\n"));
+	} else {
+		GPIO_WriteToOutputPin(GPIOA, pinNumber, DISABLE);
+
+		USART_SendData(&USART2_Handle, (uint8_t*)colorName, strlen(colorName));
+		USART_SendData(&USART2_Handle, (uint8_t*)" OFF\r\n", strlen(" OFF\r\n"));
+	}
+}
+
+/*
+ * ------------------------------
+ * 		Generic Switch Read
+ * ------------------------------
+ *
+ */
+void Read_Switch(uint8_t pinNumber, char* switchName){
+	uint8_t state = GPIO_ReadFromInputPin(GPIOA, pinNumber);
+	if (state == 0){ // "active low" since default state is HIGH due to pull-up resistor
+		USART_SendData(&USART2_Handle, (uint8_t*)switchName, strlen(switchName));
+		USART_SendData(&USART2_Handle, (uint8_t*)" Pressed!\r\n", strlen(" Pressed!\r\n"));
+	}
+	else {
+		USART_SendData(&USART2_Handle, (uint8_t*)switchName, strlen(switchName));
+		USART_SendData(&USART2_Handle, (uint8_t*)" Released!\r\n", strlen(" Released!\r\n"));
+	}
+
+}
+
+/*
  * main loop should execute functions, especially when functions are lots of lines of code
  * such functions should be implemented outside main loop to keep the logic flow simple and clear
  */
 void Process_Command(uint8_t message){
 	switch (message) {
 	/* --- RED LED Control --- */
-	case '1':
-		GPIO_WriteToOutputPin(GPIOA, 5, ENABLE); // Red on
-		USART_SendData(&USART2_Handle, (uint8_t*)"Red ON\r\n", strlen("Red ON\r\n"));
+	case '1': // PA 5
+		Set_LED(5, ENABLE, "Red");
 		break;
 	case '2':
-		GPIO_WriteToOutputPin(GPIOA, 5, DISABLE); // Red off
-		USART_SendData(&USART2_Handle, (uint8_t*)"Red OFF\r\n", strlen("Red OFF\r\n"));
+		Set_LED(5, DISABLE, "Red");
 		break;
 
 	/* --- GREEN LED Control --- */
 	case '3':
-		GPIO_WriteToOutputPin(GPIOA, 6, ENABLE); // Green on
-		USART_SendData(&USART2_Handle, (uint8_t*)"Green ON\r\n", strlen("Green ON\r\n"));
+		Set_LED(6, ENABLE, "Green");
 		break;
 	case '4':
-		GPIO_WriteToOutputPin(GPIOA, 6, DISABLE); // Green on
-		USART_SendData(&USART2_Handle, (uint8_t*)"Green OFF\r\n", strlen("Green OFF\r\n"));
+		Set_LED(6, DISABLE, "Green");
 		break;
 
 	/* --- BLUE LED Control --- */
 	case '5':
-		GPIO_WriteToOutputPin(GPIOA, 7, ENABLE); // Blue on
-		USART_SendData(&USART2_Handle, (uint8_t*)"Blue ON\r\n", strlen("Blue ON\r\n"));
+		Set_LED(7, ENABLE, "Blue");
 		break;
 	case '6':
-		GPIO_WriteToOutputPin(GPIOA, 7, DISABLE); // Blue on
-		USART_SendData(&USART2_Handle, (uint8_t*)"Blue OFF\r\n", strlen("Blue OFF\r\n"));
+		Set_LED(7, DISABLE, "Blue");
 		break;
 
 	/* --- ALL LEDs ON --- */
 	case '7':
-		GPIO_WriteToOutputPin(GPIOA, 5, ENABLE);
-		GPIO_WriteToOutputPin(GPIOA, 6, ENABLE);
-		GPIO_WriteToOutputPin(GPIOA, 7, ENABLE);
-		USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs ON\r\n", strlen("ALL LEDs ON\r\n"));
+		Set_LED(5, ENABLE, "Red");
+		Set_LED(6, ENABLE, "Green");
+		Set_LED(7, ENABLE, "Blue");
 		break;
 
 	/* --- ALL LEDs OFF --- */
 	case '8':
-		GPIO_WriteToOutputPin(GPIOA, 5, DISABLE);
-		GPIO_WriteToOutputPin(GPIOA, 6, DISABLE);
-		GPIO_WriteToOutputPin(GPIOA, 7, DISABLE);
-		USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs OFF\r\n", strlen("ALL LEDs OFF\r\n"));
+		Set_LED(5, DISABLE, "Red");
+		Set_LED(6, DISABLE, "Green");
+		Set_LED(7, DISABLE, "Blue");
 		break;
 
 	/* --- READ Switch a --- */
 	case 'a':
-		uint8_t switch_a_state = GPIO_ReadFromInputPin(GPIOA, 10);
-		if (switch_a_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Pressed!\r\n", strlen("Switch a Pressed!\r\n"));
-		}else {
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Released!\r\n", strlen("Switch a Released!\r\n"));
-		}
+		Read_Switch(10, "Switch A");
 		break;
 
 	/* --- READ Switch b --- */
 	case 'b':
-		uint8_t switch_b_state = GPIO_ReadFromInputPin(GPIOA, 11);
-		if (switch_b_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Pressed!\r\n", strlen("Switch b Pressed!\r\n"));
-		}else {
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Released!\r\n", strlen("Switch b Released!\r\n"));
-		}
+		Read_Switch(11, "Switch B");
 		break;
 
 	/* --- READ Switch c --- */
 	case 'c':
-		uint8_t switch_c_state = GPIO_ReadFromInputPin(GPIOA, 12);
-		if (switch_c_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Pressed!\r\n", strlen("Switch c Pressed!\r\n"));
-		}else {
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Released!\r\n", strlen("Switch c Released!\r\n"));
-		}
+		Read_Switch(12, "Switch C");
 		break;
 
 	/* --- READ All Switches --- */
 	case 'd':
-		uint8_t switch_a_state = GPIO_ReadFromInputPin(GPIOA, 10);
-		uint8_t switch_b_state = GPIO_ReadFromInputPin(GPIOA, 11);
-		uint8_t switch_c_state = GPIO_ReadFromInputPin(GPIOA, 12);
-		if (switch_a_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Pressed!\r\n", strlen("Switch a Pressed!\r\n"));
-		}else {
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Released!\r\n", strlen("Switch a Released!\r\n"));
-		}
-		if (switch_b_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Pressed!\r\n", strlen("Switch b Pressed!\r\n"));
-		}else {
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Released!\r\n", strlen("Switch b Released!\r\n"));
-		}
-		if (switch_c_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Pressed!\r\n", strlen("Switch c Pressed!\r\n"));
-		}else {
-			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Released!\r\n", strlen("Switch c Released!\r\n"));
-		}
+		Read_Switch(10, "Switch A");
+		Read_Switch(11, "Switch B");
+		Read_Switch(12, "Switch C");
 		break;
 	default:
-		USART_SendData(&USART2_Handle, &message, 1); // return the error input (presuming it is 1 char)
-		USART_SendData(&USART2_Handle, (uint8_t*)"\n", 1);
-		USART_SendData(&USART2_Handle, (uint8_t*)"Error. Unknown Input.\r\n", strlen("Error. Unknown Input.\r\n"));
+		USART_SendData(&USART2_Handle, (uint8_t*)"Error. Unknown Command.\r\n", strlen("Error. Unknown Command.\r\n"));
 		break;
 	}
 }
@@ -378,7 +377,21 @@ int main(void)
 	for (int i = 0; i < 5000000; i++); // software delay to avoid bad data at reboot
 
 	USART_SendData(&USART2_Handle, (uint8_t*)"\r\n", 2);
-	const char* intro_msg = "System Ready! Send '1' for Red ON, '2' for Red OFF...\r\n";
+
+	const char* intro_msg =
+			" ---------- System Ready! ----------\r\n"
+			"1: Red ON                           \r\n"
+			"2: Red OFF                          \r\n"
+			"3: Green ON                         \r\n"
+			"4: Green OFF                        \r\n"
+			"5: Blue ON                          \r\n"
+			"6: Blue OFF                         \r\n"
+			"7: ALL LEDs ON                      \r\n"
+			"8: ALL LEDs OFF                     \r\n"
+			"a: Read Switch A                    \r\n"
+			"b: Read Switch B                    \r\n"
+			"c: Read Switch C                    \r\n"
+			"d: Read ALL Switches                \r\n";
 	USART_SendData(&USART2_Handle, (uint8_t*)intro_msg, strlen(intro_msg));
 
 	while (1) {
