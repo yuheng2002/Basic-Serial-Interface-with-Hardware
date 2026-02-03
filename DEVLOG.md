@@ -1,3 +1,15 @@
+# 2026-02-02-22:00 Status Update & Debugging
+
+I have successfully reused my previous drivers and implemented a simple switch/case logic to handle the 8 commands for the LEDs. This meets the requirements to "set the state of each LED output individually" and "set the state of all LED outputs simultaneously."
+
+However, I noticed two issues during testing.
+
+First, there is a concurrency bug. If I send commands back-to-back (e.g., "78"), the first character '7' is read and begins execution. Since the UART interrupt is faster than my main processing loop, '8' arrives and updates the data variable while '7' is still being processed. The problem is that once the logic for '7' finishes, my code unconditionally resets the data variable to 0. This effectively wipes out the '8' before it can be interpreted.
+
+Second, I encountered a hardware noise issue similar to my previous cat feeder project. Whenever I flash the board or reboot, I see "garbage characters" on the console. Initially, the welcome message was also printing four times. I added a software delay loop right after `hardware_setup()`, which successfully eliminated the repeated welcome messages, but the garbage characters remain. I highly suspect this is a physical hardware behavior: when the STM32 resets, the TX pin is briefly floating or transitioning, which the receiver misinterprets as random data.
+
+I will now focus on fixing the first bug (the "78" command issue), as that is a clear software logic error involving the buffer reset timing.
+
 # 2026-02-02-19:00 Hardware Setup: Wiring and Verification
 
 Even though I previously jumped straight into complex circuits involving the A4988 driver and NEMA 17 motors for my Cat Feeder project, I realized I had very little hands-on experience wiring basic LEDs on a breadboard from scratch. I want to make sure the fundamentals are solid for this challenge.

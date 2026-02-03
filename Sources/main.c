@@ -225,10 +225,17 @@ void USART2_IRQHandler(void){
 	// USART2->DR = 0;
 }
 
+void Process_Command(uint8_t cmd){
+
+}
+
 int main(void)
 {
 	hardware_setup();
 
+	for (int i = 0; i < 5000000; i++); // software delay to avoid bad data at reboot
+
+	USART_SendData(&USART2_Handle, (uint8_t*)"\r\n", 2);
 	const char* intro_msg = "System Ready! Send '1' for Red ON, '2' for Red OFF...\r\n";
 	USART_SendData(&USART2_Handle, (uint8_t*)intro_msg, strlen(intro_msg));
 	while (1) {
