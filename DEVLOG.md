@@ -1,3 +1,28 @@
+# 2026-02-02-22:25 Quick Update
+
+A quick update before I move on to the Switches.
+
+I have separated the switch/case implementation into a `Process_Command()` function and adjusted the logic flow in `main` to follow a "Read-Clear-Process" pattern:
+
+```c
+uint8_t temp = message; // 1. Read -> Copy Command Data
+message = 0;            // 2. Clear -> Release buffer for ISR
+Process_Command(temp);  // 3. Process -> Handle the command
+```
+With this logic, if I input "78", the system behaves exactly as the hardware dictates:
+
+'7' is saved to temp, the buffer is cleared, and '7' is processed (turning LEDs ON).
+
+Meanwhile, '8' arrives in the Data Register (DR) and triggers the interrupt.
+
+The next loop processes '8' (turning LEDs OFF).
+
+This confirms the expected hardware behavior: since the UART Data Register is 8-bit, it handles data character-by-character.
+
+Logically, "78" should probably be treated as an invalid command rather than two sequential valid ones. However, fixing this in firmware would require switching from "Immediate Execution" to a "Buffered" approach (waiting for a newline character), which adds unnecessary complexity for this demo.
+
+Instead, I will rely on the high-level user API (Python) to handle input validation and ensure only single characters are sent. The firmware will remain lightweight and responsive.
+
 # 2026-02-02-22:00 Status Update & Debugging
 
 I have successfully reused my previous drivers and implemented a simple switch/case logic to handle the 8 commands for the LEDs. This meets the requirements to "set the state of each LED output individually" and "set the state of all LED outputs simultaneously."

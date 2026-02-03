@@ -225,8 +225,64 @@ void USART2_IRQHandler(void){
 	// USART2->DR = 0;
 }
 
-void Process_Command(uint8_t cmd){
+/*
+ * main loop should execute functions, especially when functions are lots of lines of code
+ * such functions should be implemented outside main loop to keep the logic flow simple and clear
+ */
+void Process_Command(uint8_t message){
+	switch (message) {
+	/* --- RED LED Control --- */
+	case '1':
+		GPIO_WriteToOutputPin(GPIOA, 5, ENABLE); // Red on
+		USART_SendData(&USART2_Handle, (uint8_t*)"Red ON\r\n", strlen("Red ON\r\n"));
+		break;
+	case '2':
+		GPIO_WriteToOutputPin(GPIOA, 5, DISABLE); // Red off
+		USART_SendData(&USART2_Handle, (uint8_t*)"Red OFF\r\n", strlen("Red OFF\r\n"));
+		break;
 
+	/* --- GREEN LED Control --- */
+	case '3':
+		GPIO_WriteToOutputPin(GPIOA, 6, ENABLE); // Green on
+		USART_SendData(&USART2_Handle, (uint8_t*)"Green ON\r\n", strlen("Green ON\r\n"));
+		break;
+	case '4':
+		GPIO_WriteToOutputPin(GPIOA, 6, DISABLE); // Green on
+		USART_SendData(&USART2_Handle, (uint8_t*)"Green OFF\r\n", strlen("Green OFF\r\n"));
+		break;
+
+	/* --- BLUE LED Control --- */
+	case '5':
+		GPIO_WriteToOutputPin(GPIOA, 7, ENABLE); // Blue on
+		USART_SendData(&USART2_Handle, (uint8_t*)"Blue ON\r\n", strlen("Blue ON\r\n"));
+		break;
+	case '6':
+		GPIO_WriteToOutputPin(GPIOA, 7, DISABLE); // Blue on
+		USART_SendData(&USART2_Handle, (uint8_t*)"Blue OFF\r\n", strlen("Blue OFF\r\n"));
+		break;
+
+	/* --- ALL LEDs ON --- */
+	case '7':
+		GPIO_WriteToOutputPin(GPIOA, 5, ENABLE);
+		GPIO_WriteToOutputPin(GPIOA, 6, ENABLE);
+		GPIO_WriteToOutputPin(GPIOA, 7, ENABLE);
+		USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs ON\r\n", strlen("ALL LEDs ON\r\n"));
+		break;
+
+	/* --- ALL LEDs OFF --- */
+	case '8':
+		GPIO_WriteToOutputPin(GPIOA, 5, DISABLE);
+		GPIO_WriteToOutputPin(GPIOA, 6, DISABLE);
+		GPIO_WriteToOutputPin(GPIOA, 7, DISABLE);
+		USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs OFF\r\n", strlen("ALL LEDs OFF\r\n"));
+		break;
+
+	default:
+		USART_SendData(&USART2_Handle, &message, 1); // return the error input (presuming it is 1 char)
+		USART_SendData(&USART2_Handle, (uint8_t*)"\n", 1);
+		USART_SendData(&USART2_Handle, (uint8_t*)"Error. Unknown Input.\r\n", strlen("Error. Unknown Input.\r\n"));
+		break;
+	}
 }
 
 int main(void)
@@ -238,66 +294,14 @@ int main(void)
 	USART_SendData(&USART2_Handle, (uint8_t*)"\r\n", 2);
 	const char* intro_msg = "System Ready! Send '1' for Red ON, '2' for Red OFF...\r\n";
 	USART_SendData(&USART2_Handle, (uint8_t*)intro_msg, strlen(intro_msg));
-	while (1) {
 
+	while (1) {
 		// only take actions when there is data
 		if (message != 0){
-
-			switch (message) {
-			/* --- RED LED Control --- */
-			case '1':
-				GPIO_WriteToOutputPin(GPIOA, 5, ENABLE); // Red on
-				USART_SendData(&USART2_Handle, (uint8_t*)"Red ON\r\n", strlen("Red ON\r\n"));
-				break;
-			case '2':
-				GPIO_WriteToOutputPin(GPIOA, 5, DISABLE); // Red off
-				USART_SendData(&USART2_Handle, (uint8_t*)"Red OFF\r\n", strlen("Red OFF\r\n"));
-				break;
-
-			/* --- GREEN LED Control --- */
-			case '3':
-				GPIO_WriteToOutputPin(GPIOA, 6, ENABLE); // Green on
-				USART_SendData(&USART2_Handle, (uint8_t*)"Green ON\r\n", strlen("Green ON\r\n"));
-				break;
-			case '4':
-				GPIO_WriteToOutputPin(GPIOA, 6, DISABLE); // Green on
-				USART_SendData(&USART2_Handle, (uint8_t*)"Green OFF\r\n", strlen("Green OFF\r\n"));
-				break;
-
-			/* --- BLUE LED Control --- */
-			case '5':
-				GPIO_WriteToOutputPin(GPIOA, 7, ENABLE); // Blue on
-				USART_SendData(&USART2_Handle, (uint8_t*)"Blue ON\r\n", strlen("Blue ON\r\n"));
-				break;
-			case '6':
-				GPIO_WriteToOutputPin(GPIOA, 7, DISABLE); // Blue on
-				USART_SendData(&USART2_Handle, (uint8_t*)"Blue OFF\r\n", strlen("Blue OFF\r\n"));
-				break;
-
-			/* --- ALL LEDs ON --- */
-			case '7':
-				GPIO_WriteToOutputPin(GPIOA, 5, ENABLE);
-				GPIO_WriteToOutputPin(GPIOA, 6, ENABLE);
-				GPIO_WriteToOutputPin(GPIOA, 7, ENABLE);
-				USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs ON\r\n", strlen("ALL LEDs ON\r\n"));
-				break;
-
-			/* --- ALL LEDs OFF --- */
-			case '8':
-				GPIO_WriteToOutputPin(GPIOA, 5, DISABLE);
-				GPIO_WriteToOutputPin(GPIOA, 6, DISABLE);
-				GPIO_WriteToOutputPin(GPIOA, 7, DISABLE);
-				USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs OFF\r\n", strlen("ALL LEDs OFF\r\n"));
-				break;
-
-			default:
-				USART_SendData(&USART2_Handle, &message, 1); // return the error input (presuming it is 1 char)
-				USART_SendData(&USART2_Handle, (uint8_t*)"\n", 1);
-				USART_SendData(&USART2_Handle, (uint8_t*)"Error. Unknown Input.\r\n", strlen("Error. Unknown Input.\r\n"));
-				break;
-			}
-
-			message = 0; // reset the buffer, otherwise while(1) will end up in a dead loop
+			uint8_t temp = message; // 1. Read -> Copy Command Data
+			message = 0; // 2. Clear -> reset the buffer, otherwise while(1) will end up in a dead loop
+			Process_Command(temp); // 3. Process -> Handle the command
+			message = 0;
 		}
 	}
 }
