@@ -19,7 +19,8 @@ I kept the hardware setup minimal to prioritize firmware logic and signal integr
 ### Step 2: System Architecture & Logic
 * **Role Definition:** The STM32 acts as the **Muscle**. It listens for commands and executes them immediately.
     * If the STM32 receives an invalid command, it should do nothing and return an error message.
-* **Communication Protocol:** * **Mode:** Character-Based (Immediate Execution).
+* **Communication Protocol:** 
+    * **Mode:** Character-Based (Immediate Execution).
     * **Reasoning:** I chose a non-blocking, interrupt-driven approach. This ensures the system has low latency.
 
 ### Step 3: Implementation
