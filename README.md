@@ -9,7 +9,7 @@ I kept the hardware setup minimal to prioritize firmware logic and signal integr
 * **MCU:** STM32 Nucleo-F446RE (ARM Cortex-M4)
 * **Components:** * 3 x LEDs (Red, Green, Blue)
     * 3 x Tactile Switches
-    * Resistors & Breadboard wiring
+    * (220&Omega) Resistors & Breadboard wiring
 
 ## Development Plan
 
