@@ -33,9 +33,8 @@ I kept the hardware setup minimal to prioritize firmware logic and signal integr
 
 <img width="1193" height="775" alt="image" src="https://github.com/user-attachments/assets/f13c13ed-3fcf-4f36-af39-35ecc877e10c" />
 
-## 🎮 User Manual / Commands
-Connect via Serial Terminal (Baud: 115200, 8-N-1):
-
+## User Manual / Commands
+Connect via Serial Monitor in VSCode (Baud: 115200, 8-N-1):
 | Key | Action |
 | :--- | :--- |
 | **1 / 2** | Red LED On / Off |
