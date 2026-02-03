@@ -17,6 +17,7 @@
  */
 
 #include <stdint.h>
+#include <string.h> // strlen()
 #include "stm32f446xx.h"
 #include "stm32f446xx_gpio_driver.h"
 #include "stm32f446xx_uart_driver.h"
@@ -25,6 +26,10 @@
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
 #endif
 
+/* --- Global Variables --- */
+USART_Handle_t USART2_Handle; // declared here to reuse in USART_SendData in main() function
+uint8_t message = 0; // data collected from USART2 data register
+
 void hardware_setup(void){
 	/*
 	 * ========================================
@@ -32,6 +37,7 @@ void hardware_setup(void){
 	 * ========================================
 	 */
 	GPIOA_PCLK_EN();
+	USART2_PCLK_EN();
 
 	/*
 	 * ========================================
@@ -85,12 +91,206 @@ void hardware_setup(void){
 	LED_BLUE.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_MEDIUM;
 
 	GPIO_Init(&LED_BLUE);
+
+	/* ---------- USART2 Configuration ----------*/
+
+	/*
+	 * ========================================
+	 * 		PA2 (TX) Configuration
+	 * ========================================
+	 * according to Table 11. Alternate function at page 57 in datasheet
+	 * when PA2 is set to AF7
+	 * it can use USART2_TX
+	 */
+	GPIO_Handle_t USART2_TX;
+
+	USART2_TX.pGPIOx = GPIOA;
+	USART2_TX.GPIO_PinConfig.GPIO_PinNumber = 2;
+	USART2_TX.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTN;
+	USART2_TX.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_VERY_HIGH;
+	USART2_TX.GPIO_PinConfig.GPIO_PinAltFunMode = GPIO_AF_7 ;
+	USART2_TX.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU; // pull-up
+	USART2_TX.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP; // default
+
+	GPIO_Init(&USART2_TX);
+
+	/*
+	 * ========================================
+	 * 		PA3 (RX) Configuration
+	 * ========================================
+	 * when PA3 is set to AF7
+	 * it can use USART2_RX
+	 *
+	 * --------------- NOTE ---------------
+	 * Both TX/RX are configured with internal pull-ups to ensure the line remains
+	 * in a stable IDLE (High) state. This avoids floating-point noise that might
+	 * be misinterpreted as a START bit (Low), preventing the receiver from
+	 * sampling garbage data.
+	 */
+	GPIO_Handle_t USART2_RX;
+
+	USART2_RX.pGPIOx = GPIOA;
+	USART2_RX.GPIO_PinConfig.GPIO_PinNumber = 3;
+	USART2_RX.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTN;
+	USART2_RX.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_VERY_HIGH;
+	USART2_RX.GPIO_PinConfig.GPIO_PinAltFunMode = GPIO_AF_7 ;
+	USART2_RX.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU; // pull-up
+	USART2_RX.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP; // default
+
+	GPIO_Init(&USART2_RX);
+
+	/*
+	 * ========================================
+	 * 		USART2 Configuration
+	 * ========================================
+	 * since I only use it for testing purposes (Serial Print)
+	 * and giving command to turn the motor from my end
+	 * I use the standard "8-N-1" setup
+	 * 1. 8 bits as word length (not 9 since I will not use parity)
+	 * 2. None parity (unless signal is not stable, it is not needed)
+	 * 3. Stop Bits -> 1 (not too fast, not too slow, right in the middle)
+	 */
+	USART2_Handle.pUSARTx = USART2;
+	USART2_Handle.USART_Config.USART_MODE = USART_MODE_TXRX;
+	USART2_Handle.USART_Config.USART_WordLength = USART_WordLength_8;
+	USART2_Handle.USART_Config.USART_ParityControl = USART_Parity_DISABLE;
+	USART2_Handle.USART_Config.USART_StopBits = USART_StopBits_1;
+	USART2_Handle.USART_Config.USART_Baud = USART_Baud_115200;
+
+	USART_Init(&USART2_Handle);
+
+	/*
+	 * ==============================
+	 * USART2 Interrupt Set Up
+	 * ==============================
+	 * Reference: Table 163. USART interrupt requests
+	 *
+	 * In order to use interrupt for USART
+	 * [RXNEIE] must be enabled
+	 *
+	 * Control register 1 (USART_CR1)
+	 * Bit 5 RXNEIE: RXNE interrupt enable
+	 * 0: Interrupt is inhibited
+	 * 1: An USART interrupt is generated whenever ORE=1 or RXNE=1 in the USART_SR register
+	 */
+	SET_BIT(USART2->CR1, 5);
+
+	/*
+	 * ==============================
+	 * Enable USART2 (IRQ = 38) -> NVIC
+	 * ==============================
+	 */
+	USART_IRQInterruptConfig(USART2_IRQ , ENABLE);
+}
+
+/*
+ * ==========================================
+ * Interrupt Service Routine (ISR) for USART2
+ * ==========================================
+ * This function handles the Hardware Interrupt triggered by USART2
+ *
+ * KEY CONCEPT:
+ * Unlike standard C functions, this is NOT called by main().
+ * It is invoked directly by the Hardware (NVIC) via the Vector Table
+ * when the specific interrupt event occurs.
+ */
+void USART2_IRQHandler(void){
+	/*
+	 * there is no pending register to manually clear
+	 * since USART interrupt does NOT go through EXTI
+	 *
+	 * Also, in SR (Status Register)
+	 * Bit 5 RXNE: Read data register not empty
+	 * It says:
+	 * [This bit is set by hardware when the content of the RDR shift register
+	 * has been transferred to the USART_DR register. An interrupt is generated
+	 * if RXNEIE=1 in the USART_CR1 register.
+	 * It is cleared by a read to the USART_DR register.]
+	 * ->
+	 * this tells us that, the hardware will automatically reset this register
+	 * once the data in Data Register is read, so we do not need to manually reset it
+	 *
+	 * [READ ONLY!]
+	 * Reading DR automatically clears the RXNE flag.
+	*/
+	message = ( (USART2->DR) & 0xFF );
+
+	/*
+	 * [Commented Out] because:
+	 * DR is meant for both TX and RX
+	 * it is both the RDR (receive data register) and TDR (transmit data register)
+	 * overwriting it manually each time after the it receives a byte
+	 * might cause it to accidentally transmit a byte
+	 */
+	// USART2->DR = 0;
 }
 
 int main(void)
 {
 	hardware_setup();
-	GPIO_WriteToOutputPin(GPIOA, 5, ENABLE);
-	GPIO_WriteToOutputPin(GPIOA, 6, ENABLE);
-	GPIO_WriteToOutputPin(GPIOA, 7, ENABLE);
+
+	const char* intro_msg = "System Ready! Send '1' for Red ON, '2' for Red OFF...\r\n";
+	USART_SendData(&USART2_Handle, (uint8_t*)intro_msg, strlen(intro_msg));
+	while (1) {
+
+		// only take actions when there is data
+		if (message != 0){
+
+			switch (message) {
+			/* --- RED LED Control --- */
+			case '1':
+				GPIO_WriteToOutputPin(GPIOA, 5, ENABLE); // Red on
+				USART_SendData(&USART2_Handle, (uint8_t*)"Red ON\r\n", strlen("Red ON\r\n"));
+				break;
+			case '2':
+				GPIO_WriteToOutputPin(GPIOA, 5, DISABLE); // Red off
+				USART_SendData(&USART2_Handle, (uint8_t*)"Red OFF\r\n", strlen("Red OFF\r\n"));
+				break;
+
+			/* --- GREEN LED Control --- */
+			case '3':
+				GPIO_WriteToOutputPin(GPIOA, 6, ENABLE); // Green on
+				USART_SendData(&USART2_Handle, (uint8_t*)"Green ON\r\n", strlen("Green ON\r\n"));
+				break;
+			case '4':
+				GPIO_WriteToOutputPin(GPIOA, 6, DISABLE); // Green on
+				USART_SendData(&USART2_Handle, (uint8_t*)"Green OFF\r\n", strlen("Green OFF\r\n"));
+				break;
+
+			/* --- BLUE LED Control --- */
+			case '5':
+				GPIO_WriteToOutputPin(GPIOA, 7, ENABLE); // Blue on
+				USART_SendData(&USART2_Handle, (uint8_t*)"Blue ON\r\n", strlen("Blue ON\r\n"));
+				break;
+			case '6':
+				GPIO_WriteToOutputPin(GPIOA, 7, DISABLE); // Blue on
+				USART_SendData(&USART2_Handle, (uint8_t*)"Blue OFF\r\n", strlen("Blue OFF\r\n"));
+				break;
+
+			/* --- ALL LEDs ON --- */
+			case '7':
+				GPIO_WriteToOutputPin(GPIOA, 5, ENABLE);
+				GPIO_WriteToOutputPin(GPIOA, 6, ENABLE);
+				GPIO_WriteToOutputPin(GPIOA, 7, ENABLE);
+				USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs ON\r\n", strlen("ALL LEDs ON\r\n"));
+				break;
+
+			/* --- ALL LEDs OFF --- */
+			case '8':
+				GPIO_WriteToOutputPin(GPIOA, 5, DISABLE);
+				GPIO_WriteToOutputPin(GPIOA, 6, DISABLE);
+				GPIO_WriteToOutputPin(GPIOA, 7, DISABLE);
+				USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs OFF\r\n", strlen("ALL LEDs OFF\r\n"));
+				break;
+
+			default:
+				USART_SendData(&USART2_Handle, &message, 1); // return the error input (presuming it is 1 char)
+				USART_SendData(&USART2_Handle, (uint8_t*)"\n", 1);
+				USART_SendData(&USART2_Handle, (uint8_t*)"Error. Unknown Input.\r\n", strlen("Error. Unknown Input.\r\n"));
+				break;
+			}
+
+			message = 0; // reset the buffer, otherwise while(1) will end up in a dead loop
+		}
+	}
 }
