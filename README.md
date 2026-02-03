@@ -1,8 +1,5 @@
 # Basic Serial Interface with Hardware
 
-## Goal
-I implemented this challenge by leveraging **Bare-Metal STM32 drivers** that I developed from scratch. This approach allows me to manually configure GPIOs and UART peripherals, demonstrating understanding of direct memory manipulation without relying on HAL abstraction layers.
-
 ## 🛠 Hardware Setup
 I kept the hardware setup minimal to prioritize firmware logic and signal integrity.
 
