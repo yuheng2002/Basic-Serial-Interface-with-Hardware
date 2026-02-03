@@ -28,7 +28,7 @@ I kept the hardware setup minimal to prioritize firmware logic and signal integr
 * **Interrupt Handling:** Use `USART2_IRQHandler` to process real-time data.
 * **Command Processing:** Implement Switch-Case logic loop to process commands (`1-8`) and handle Switch inputs.
 * **GPIO Configuration:** * Consult the datasheet to find available pins.
-    * I aim to group the 3 LEDs on the same Port (e.g., Port A) and the 3 Switches on another Port (e.g., Port C). This keeps the code clean and allows me to enable fewer GPIO clocks, which is slightly more efficient.
+    * I aim to group the 3 LEDs (e.g. PA 5, 6, 7) and the 3 Switches on the same Port (e.g. PA 10, 11, 12). This keeps the code clean and allows me to enable fewer GPIO clocks, which is slightly more efficient.
 <img width="960" height="720" alt="image" src="https://github.com/user-attachments/assets/619d68fd-0a29-4dd4-b1e2-5f0a2dc39197" />
 
 <img width="1193" height="775" alt="image" src="https://github.com/user-attachments/assets/f13c13ed-3fcf-4f36-af39-35ecc877e10c" />

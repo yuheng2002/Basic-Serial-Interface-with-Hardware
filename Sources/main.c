@@ -181,6 +181,41 @@ void hardware_setup(void){
 	 * ==============================
 	 */
 	USART_IRQInterruptConfig(USART2_IRQ , ENABLE);
+
+	/*
+	 * ========================================
+	 * Switch Configuration (Inputs)
+	 * ========================================
+	 * Using PA10, PA11, PA12 as Switches
+	 * Mode: Input
+	 * PUPD: Pull-up (So default state is HIGH, press button to go "active LOW")
+	 */
+	GPIO_Handle_t Switch_a, Switch_b, Switch_c;
+
+	// --- Switch 1 (PA10) ---
+	Switch_a.pGPIOx = GPIOA;
+	Switch_a.GPIO_PinConfig.GPIO_PinNumber = 10;
+	Switch_a.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IN ;
+	Switch_a.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU; // pull-up enabled to avoid bad readings due to floating state
+	Switch_a.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_MEDIUM;
+
+	// --- Switch 2 (PA11) ---
+	Switch_b.pGPIOx = GPIOA;
+	Switch_b.GPIO_PinConfig.GPIO_PinNumber = 11;
+	Switch_b.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IN ;
+	Switch_b.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU; // pull-up enabled to avoid bad readings due to floating state
+	Switch_b.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_MEDIUM;
+
+	// --- Switch 3 (PA12) ---
+	Switch_c.pGPIOx = GPIOA;
+	Switch_c.GPIO_PinConfig.GPIO_PinNumber = 12;
+	Switch_c.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IN ;
+	Switch_c.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU; // pull-up enabled to avoid bad readings due to floating state
+	Switch_c.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_MEDIUM;
+
+	GPIO_Init(&Switch_a);
+	GPIO_Init(&Switch_b);
+	GPIO_Init(&Switch_c);
 }
 
 /*
@@ -277,6 +312,57 @@ void Process_Command(uint8_t message){
 		USART_SendData(&USART2_Handle, (uint8_t*)"ALL LEDs OFF\r\n", strlen("ALL LEDs OFF\r\n"));
 		break;
 
+	/* --- READ Switch a --- */
+	case 'a':
+		uint8_t switch_a_state = GPIO_ReadFromInputPin(GPIOA, 10);
+		if (switch_a_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Pressed!\r\n", strlen("Switch a Pressed!\r\n"));
+		}else {
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Released!\r\n", strlen("Switch a Released!\r\n"));
+		}
+		break;
+
+	/* --- READ Switch b --- */
+	case 'b':
+		uint8_t switch_b_state = GPIO_ReadFromInputPin(GPIOA, 11);
+		if (switch_b_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Pressed!\r\n", strlen("Switch b Pressed!\r\n"));
+		}else {
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Released!\r\n", strlen("Switch b Released!\r\n"));
+		}
+		break;
+
+	/* --- READ Switch c --- */
+	case 'c':
+		uint8_t switch_c_state = GPIO_ReadFromInputPin(GPIOA, 12);
+		if (switch_c_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Pressed!\r\n", strlen("Switch c Pressed!\r\n"));
+		}else {
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Released!\r\n", strlen("Switch c Released!\r\n"));
+		}
+		break;
+
+	/* --- READ All Switches --- */
+	case 'd':
+		uint8_t switch_a_state = GPIO_ReadFromInputPin(GPIOA, 10);
+		uint8_t switch_b_state = GPIO_ReadFromInputPin(GPIOA, 11);
+		uint8_t switch_c_state = GPIO_ReadFromInputPin(GPIOA, 12);
+		if (switch_a_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Pressed!\r\n", strlen("Switch a Pressed!\r\n"));
+		}else {
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch a Released!\r\n", strlen("Switch a Released!\r\n"));
+		}
+		if (switch_b_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Pressed!\r\n", strlen("Switch b Pressed!\r\n"));
+		}else {
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch b Released!\r\n", strlen("Switch b Released!\r\n"));
+		}
+		if (switch_c_state == 0){ // "active low" since default state is HIGH due to pull-up resistor
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Pressed!\r\n", strlen("Switch c Pressed!\r\n"));
+		}else {
+			USART_SendData(&USART2_Handle, (uint8_t*)"Switch c Released!\r\n", strlen("Switch c Released!\r\n"));
+		}
+		break;
 	default:
 		USART_SendData(&USART2_Handle, &message, 1); // return the error input (presuming it is 1 char)
 		USART_SendData(&USART2_Handle, (uint8_t*)"\n", 1);
