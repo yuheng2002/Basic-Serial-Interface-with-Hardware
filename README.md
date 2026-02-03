@@ -24,7 +24,7 @@ I kept the hardware setup minimal to prioritize firmware logic and signal integr
 * **Drivers:** Port existing custom UART/GPIO drivers to the new project.
 * **Interrupt Handling:** Use `USART2_IRQHandler` to process real-time data.
 * **Command Processing:** Implement Switch-Case logic loop to process commands (`1-8`) and handle Switch inputs.
-* **GPIO Configuration:** * Consult the datasheet to find available pins.
+* **GPIO Configuration:** Consult the datasheet to find available pins.
     * I aim to group the 3 LEDs (e.g. PA 5, 6, 7) and the 3 Switches on the same Port (e.g. PA 10, 11, 12). This keeps the code clean and allows me to enable fewer GPIO clocks, which is slightly more efficient.
 <img width="960" height="720" alt="image" src="https://github.com/user-attachments/assets/619d68fd-0a29-4dd4-b1e2-5f0a2dc39197" />
 
