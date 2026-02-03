@@ -301,7 +301,6 @@ int main(void)
 			uint8_t temp = message; // 1. Read -> Copy Command Data
 			message = 0; // 2. Clear -> reset the buffer, otherwise while(1) will end up in a dead loop
 			Process_Command(temp); // 3. Process -> Handle the command
-			message = 0;
 		}
 	}
 }
