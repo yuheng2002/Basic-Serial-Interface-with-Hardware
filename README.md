@@ -3,7 +3,7 @@
 ## Goal
 I implemented this challenge by partially re-using the **Bare-Metal STM32 drivers** that I previously developed from scratch. This approach allows me to manually configure GPIOs and UART peripherals, demonstrating understanding of direct memory manipulation without relying on HAL.
 
-## 🛠 Hardware Setup
+## Hardware Setup
 I kept the hardware setup minimal to prioritize firmware logic and signal integrity.
 
 * **MCU:** STM32 Nucleo-F446RE (ARM Cortex-M4)
