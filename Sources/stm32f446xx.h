@@ -88,6 +88,10 @@
 
 #define TIM6_BASEADDR       (APB1_BASEADDR + 0x1000U) // TIM6: 0x4000 1000
 
+#define I2C1_BASEADDR       (APB1_BASEADDR + 0x5400)  // I2C1: 0x4000 5400
+#define I2C2_BASEADDR       (APB1_BASEADDR + 0x5800)  // I2C1: 0x4000 5800
+#define I2C3_BASEADDR       (APB1_BASEADDR + 0x5C00)  // I2C1: 0x4000 5C00
+
 /*
  * APB2 Peripherals
  */
@@ -284,6 +288,25 @@ typedef struct{
 
 /*
  * ==========================================
+ * 			I2C Register Map
+ * ==========================================
+ * 24.6.11 in RM0390 Reference Manual
+ */
+typedef struct{
+	volatile uint32_t CR1; 	  // control register 1, 		Offset: 0x00
+	volatile uint32_t CR2;    // control register 2, 		Offset: 0x04
+	volatile uint32_t OAR1;   // own address register 1 , 	Offset: 0x08
+	volatile uint32_t OAR2;   // own address register 2, 	Offset: 0x0C
+	volatile uint32_t DR;     // data register, 			Offset: 0x10
+	volatile uint32_t SR1;    // status register 1, 		Offset: 0x14
+	volatile uint32_t SR2;    // status register 2, 		Offset: 0x18
+	volatile uint32_t CCR;    // clock control register, 	Offset: 0x1C
+	volatile uint32_t TRISE;  // TRISE register, 			Offset: 0x20
+	volatile uint32_t FLTR;   // FLTR register, 			Offset: 0x24
+} I2C_RegDef_t;
+
+/*
+ * ==========================================
  * 4. Peripheral Definitions (Typecasting)
  * ==========================================
  * Creating "Objects" for our peripherals.
@@ -342,6 +365,15 @@ typedef struct{
 #define TIM3   ( (TIM_RegDef_t*)TIM3_BASEADDR )
 
 #define TIM6   ( (TIM_RegDef_t*)TIM6_BASEADDR )
+
+/*
+ * ==========================================
+ * 		 I2C Peripheral Definitions
+ * ==========================================
+ */
+#define I2C1   ( (I2C_RegDef_t*)I2C1_BASEADDR )
+#define I2C2   ( (I2C_RegDef_t*)I2C2_BASEADDR )
+#define I2C3   ( (I2C_RegDef_t*)I2C3_BASEADDR )
 
 /*
  * ==========================================

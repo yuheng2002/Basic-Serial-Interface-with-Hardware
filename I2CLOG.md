@@ -37,7 +37,7 @@ To prevent this, I2C uses **Open-Drain** mode.
 * **Safety:** Now, if STM32 "lets go" (High) and the Sensor "pulls down" (Low), current flows from the 3.3V source, through the **Pull-Up Resistor**, and then to the Sensor's GND. The resistor limits the current to a safe level (e.g., < 1mA), preventing any damage.
 * **Active Low Logic:** Because the chips can only pull down, **Logic 0** becomes the "Active" signal (e.g., an ACK signal is a Low pulse), and Logic 1 is just the idle state.
 
-### Project Structure Strategy
+### Project Structure 
 
 For the code implementation, I will not create a brand new project. Instead:
 1.  I will keep the existing `main.c` (renaming its function to `main_led_demo`).
