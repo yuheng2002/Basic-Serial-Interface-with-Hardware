@@ -1,4 +1,68 @@
-# 2026-02-10: I2C Chips - Basic Understanding & Hardware Logic
+# 2026-02-10: BMP280 - Datasheet Reading & Driver Implementation
+
+## Pin Selection & Alternate Functions
+According to **Table 11 (Alternate Function)** in the STM32F446MC datasheet, AF 4 is the correct setting. 
+* **I2C1_SCL:** Supported by PB6 and PB8.
+* **I2C1_SDA:** Supported by PB7 and PB9.
+* (PB10 and PB11 support I2C2).
+
+I learned that unlike TIMERS—where features vary significantly (e.g., Basic TIM6 vs. Advanced TIM1)—the three I2C peripherals (I2C1, 2, 3) are essentially identical in functionality. I chose **PB8 and PB9** simply because they are physically consecutive pins on the CN10 header, which makes wiring cleaner.
+
+## Driver Implementation
+Honestly, setting up the I2C1 registers is just bit manipulation and pointer arithmetic, similar to the GPIO driver. However, while I found some conceptual similarities between I2C and UART, the implementation differences are significant.
+
+### Physical Connection
+I connected 4 pins: **VIN, GND, SCL, and SDA**.
+* **VIN & GND:** Power the BMP280 sensor via the STM32.
+* **SCL (Serial Clock):** Since the STM32 is the **Master**, it generates the clock. I had to calculate the correct values for the CR2 and CCR registers to achieve the standard **100kHz** frequency.
+* **SDA (Serial Data):** This is where the data transfer happens. Similar to TX/RX in UART, writing to the Data Register (DR) shifts bytes out through this pin.
+
+### Conceptual Model: UART vs. I2C
+My understanding of the difference is:
+* **UART (Asynchronous):** Feels like "two one-way streets." Even though it’s bidirectional, the TX and RX lines are independent. There is no shared clock line.
+* **I2C (Synchronous):** Is truly bidirectional on a *single* data line (Half-Duplex). The Master must follow a strict protocol sequence to control the bus.
+
+### The Protocol Sequence
+The communication flow I implemented is:
+1.  **START:** Master sets the START bit to claim the bus.
+2.  **ADDRESS:** Master sends "Device Address + Read/Write bit" (0 for Write, 1 for Read).
+3.  **ACK:** The target device (BMP280) responds with an ACK. 
+    * *Note:* I assume this is handled automatically by the hardware. I enabled the ACK bit in the STM32 configuration, so the hardware waits for this handshake. I don't need to manually "force" the sensor to reply.
+4.  **DATA:** Master sends the specific Register Address (e.g., `0xD0` for ID) and waits for another ACK.
+
+Once the STM32 finishes "talking" (requesting the ID), the roles switch. The BMP280 takes over the SDA line to send data back.
+
+### The "NACK" Trick
+My goal is to read the Chip ID at register `0xD0` (1 byte). I followed the **"Master Receiver"** sequence from the reference manual. 
+
+There is a specific nuance here:
+* Immediately after the **ADDR** flag sets (indicating address matched), I **disable the ACK bit** in CR1.
+* This tells the hardware to send a **NACK** after receiving the next byte.
+* This NACK effectively tells the slave (BMP280) to "stop talking." If I sent an ACK instead, the slave might try to send the next register value, confusing the protocol.
+* Finally, I set the STOP bit.
+
+### TXE vs. BTF flags
+I noticed I2C has two flags that map to UART concepts:
+1.  **TXE (Transmit Empty):** The buffer is empty and ready for the next byte.
+2.  **BTF (Byte Transfer Finished):** Comparable to **TC** in UART. It means the transfer is fully complete and the shift register is empty.
+
+## The Issue: Hardware Reality
+Despite the code logic seemingly correct, I could not read the ID. The program hangs infinitely at this line:
+
+```c
+while ( (I2C1->SR1 & (1u << 1)) == 0 ); // Wait for ADDR to become 1
+```
+
+**Diagnosis:**
+This loop waits for the hardware to set the **ADDR** flag, which is dependent on receiving an **ACK** from the sensor.
+
+* Since I did not solder the headers to the BMP280 module (relying on loose physical contact), the signal integrity is likely compromised.
+* The STM32 sends the address `0x76`, but the BMP280 either doesn't receive it clearly or its response (ACK) isn't reaching the STM32.
+* Because the STM32 never sees the ACK, ADDR never sets, and the software is stuck.
+
+**Conclusion:** The code logic is valid, but the physical layer failed. Soldering is required for I2C communication.
+
+# 2026-02-09: I2C Chips - Basic Understanding & Hardware Logic
 
 Although I already knew from previous exposure to I2C that 4 pins are required (VCC, GND, SCL, SDA), and that pull-up resistors must be enabled in Open-Drain mode, I was curious about the exact physical hardware reasons behind these requirements.
 
